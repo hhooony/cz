@@ -7,7 +7,7 @@ exec tail -n +3 $0
 
 # ocs_repository="dev:///dev/sda1"
 # ocs_repository="dev:///UUID=2621c5f4-2696-4b81-ac4d-cd5765d64c82"
-# ocs_repository="dev:///UUID=dda24e6b-a4e0-4b79-90b9-82a1a2bb906d"
+# ocs_repository="dev:///UUID=dda24e6b-a4e0-4b79-90b9-82a1a2bb906d" #my_wd
 
 menuentry "Clonezilla_Backup" {
     ISO="/clonezilla.iso"
