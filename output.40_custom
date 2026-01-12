@@ -1,0 +1,50 @@
+#!/bin/sh
+exec tail -n +3 $0
+# This file provides an easy way to add custom menu entries.  Simply type the
+# menu entries you want to add after this comment.  Be careful not to change
+# the 'exec tail' line above.
+
+
+# ocs_repository="dev:///dev/sda1"
+# ocs_repository="dev:///UUID=2621c5f4-2696-4b81-ac4d-cd5765d64c82"
+# ocs_repository="dev:///UUID=dda24e6b-a4e0-4b79-90b9-82a1a2bb906d"
+
+menuentry "Clonezilla_Backup" {
+    ISO="/clonezilla.iso"
+    search --set -f $ISO
+    loopback loop $ISO
+
+    linux (loop)/live/vmlinuz \
+        boot=live union=overlay username=user config components quiet loglevel=3 \
+        noswap edd=on nomodeset \
+        locales=en_US.UTF-8 keyboard-layouts=us \
+        ocs_prerun="ocs-scan-disk" \
+        ocs_repository="dev:///UUID=dda24e6b-a4e0-4b79-90b9-82a1a2bb906d" \
+        ocs_preload="mount --bind -o noatime /tmp/ocsroot_bind_root/backup_sys /home/partimag" \
+        ocs_live_run="ocs-sr -batch -q2 -j2 -z9p -p reboot -sfsck -scs -senc savedisk /backup_sys/before_omv-majorUpdate-20260111-172452 nvme0n1" \
+        ocs_live_batch="yes" \
+        vga=791 i915.blacklist=yes radeonhd.blacklist=yes nouveau.blacklist=yes vmwgfx.enable_fbdev=1 scsi_mod.use_blk_mq=0 nvme.poll_queues=1 \
+        findiso=$ISO
+
+    initrd (loop)/live/initrd.img
+}
+
+menuentry "Clonezilla_Restore"  {
+    ISO="/clonezilla.iso"
+    search --set -f $ISO
+    loopback loop $ISO
+
+ 	linux (loop)/live/vmlinuz \
+    	boot=live union=overlay username=user config components quiet loglevel=3 \
+    	noswap edd=on nomodeset enforcing=0 noeject \
+    	locales=en_US.UTF-8 keyboard-layouts=us \
+    	ocs_prerun="ocs-scan-disk" \
+    	ocs_repository="dev:///UUID=dda24e6b-a4e0-4b79-90b9-82a1a2bb906d" \
+    	ocs_preload="mount --bind -o noatime /tmp/ocsroot_bind_root/backup_sys /home/partimag" \
+    	ocs_live_run="/usr/sbin/ocs-sr -batch -g auto -e1 auto -e2 -r -j2 -k0 -scr -p reboot restoredisk /backup_sys/filename_restore nvme0n1" \
+    	ocs_live_batch="yes" \
+    	vga=791 i915.blacklist=yes radeonhd.blacklist=yes nouveau.blacklist=yes vmwgfx.enable_fbdev=1 scsi_mod.use_blk_mq=0 nvme.poll_queues=1 \
+    	findiso=$ISO
+
+	initrd (loop)/live/initrd.img
+}
