@@ -3,7 +3,7 @@
 # mount --mkdir /dev/sdb2 /mnt/sdb2
 FOLDER_REPOS="/srv/dev-disk-by-uuid-dda24e6b-a4e0-4b79-90b9-82a1a2bb906d/backup_sys"
 FOLDER_PREF=""                  # optional prefix filter
-SRC="template.40_custom"
+SRC="template.40_custom_restore"
 DST="output.40_custom"
 STRING_TO_REPLACE="filename_restore"
 WARNING_MESSAGE="WARNING: this will REBOOT !!!!. Do you wish to continue? (y/N): "
@@ -15,6 +15,12 @@ error_exit() {
     echo "Error: $1"
     exit 1
 }
+
+## Q1. 루트 권한 확인: 이 스크립트는 시스템 파일을 수정하므로 루트 권한이 필요합니다.
+if [ "$(id -u)" -ne 0 ]; then
+    echo "Error: This script must be run as root. Please use 'sudo'." >&2
+    exit 1
+fi
 
 # -------------------------------
 # User confirmation
@@ -121,6 +127,12 @@ echo "Success: Content saved to '${DST}' with substitution '${FOLDER_SELECT}'."
 # -------------------------------
 if ! cp -f "$DST" /etc/grub.d/40_custom; then
     error_exit "Failed to copy '$DST' to /etc/grub.d/40_custom."
+fi
+
+## 다음 부팅 시 일회성 정리 서비스를 활성화합니다.
+echo "## Enabling one-time cleanup service for next boot..."
+if ! systemctl enable grub-cleanup.service; then
+    error_exit "Failed to enable grub-cleanup.service."
 fi
 
 if ! update-grub; then
