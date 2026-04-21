@@ -1,0 +1,6 @@
+menuentry 'Clonezilla_Backup' {
+    # Boot Clonezilla with backup options
+    set root=(hd0,1)
+    linux /clonezilla/vmlinuz boot=live noclue nodevfs live-media-path=/clonezilla ip=frommedia locales=en_US.UTF-8
+    initrd /clonezilla/initrd.img
+}
