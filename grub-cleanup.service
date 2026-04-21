@@ -1,0 +1,12 @@
+[Unit]
+Description=One-time GRUB cleanup after Clonezilla operation
+## ConditionPathExists는 이 서비스가 실행될 핵심 조건입니다.
+## 지정된 파일이 존재할 때만 서비스가 실행됩니다.
+ConditionPathExists=/etc/grub.d/40_custom
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/grub-cleanup.sh
+
+[Install]
+WantedBy=multi-user.target
