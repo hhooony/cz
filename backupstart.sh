@@ -5,10 +5,10 @@ DST="output.40_custom"
 STRING_TO_REPLACE="filename_backup"
 WARNING_MESSAGE="WARNING: this will REBOOT !!!!. Do you wish to continue? (y/N): "
 
-## Q1. 루트 권한 확인: 이 스크립트는 시스템 파일을 수정하므로 루트 권한이 필요합니다.
-if [ "$(id -u)" -ne 0 ]; then
-    echo "Error: This script must be run as root. Please use 'sudo'." >&2
-    exit 1
+if [ "$EUID" -ne 0 ]; then
+    echo -e "\033[0;34m[System] Requesting sudo privileges...\033[0m"
+    sudo "$0" "$@"
+    exit $?
 fi
 
 error_exit() {
@@ -17,7 +17,7 @@ error_exit() {
 }
 
 echo -n "${WARNING_MESSAGE}"
-read USER_INPUT
+read -r USER_INPUT
 
 if ! [[ "$USER_INPUT" =~ ^[yY]$ ]]; then
     echo "Operation cancelled by the user. Stopping script."
@@ -33,7 +33,7 @@ FILENAME_PREF=""
 
 while true; do
     echo -n "Please enter the desired filename prefix (e.g. Backup_before_modification) : "
-    read FILENAME_PREF
+    read -r FILENAME_PREF
 
     # Check if the input is empty
     if [ -z "$FILENAME_PREF" ]; then
@@ -54,7 +54,7 @@ NEW_SUBSTITUTION="${FILENAME_PREF}-${DATETIME_STAMP}"
 
 #echo "---"
 #echo "Generating new Custom GRUB enrty with backup filename '${NEW_SUBSTITUTION}'."
-## Q2. sed 명령어 안정성 향상: 구분자를 '|'로 변경하여 파일 이름에 '/'가 포함되어도 안전하게 처리합니다.
+## sed 명령어 안정성 향상: 구분자를 '|'로 변경하여 파일 이름에 '/'가 포함되어도 안전하게 처리합니다.
 sed "s|${STRING_TO_REPLACE}|${NEW_SUBSTITUTION}|g" "$SRC" > "$DST"
 
 # Check if the sed operation was successful
@@ -68,6 +68,19 @@ fi
 if ! cp -f "$DST" /etc/grub.d/40_custom; then
     error_exit "Failed to copy '$DST' to /etc/grub.d/40_custom."
 fi
+
+## 일회성 정리 서비스 설치 및 업데이트
+echo "## Installing cleanup service..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+if ! cp -f "$SCRIPT_DIR/grub-cleanup.sh" /usr/local/sbin/grub-cleanup.sh; then
+    error_exit "Failed to copy grub-cleanup.sh to /usr/local/sbin/"
+fi
+chmod +x /usr/local/sbin/grub-cleanup.sh
+
+if ! cp -f "$SCRIPT_DIR/grub-cleanup.service" /etc/systemd/system/grub-cleanup.service; then
+    error_exit "Failed to copy grub-cleanup.service to /etc/systemd/system/"
+fi
+systemctl daemon-reload
 
 ## 다음 부팅 시 일회성 정리 서비스를 활성화합니다.
 echo "## Enabling one-time cleanup service for next boot..."
@@ -83,8 +96,11 @@ if ! grub-reboot "Clonezilla_Backup"; then
     error_exit "Failed to set grub-reboot for 'Clonezilla_Backup'."
 fi
 
-## show count down with additional message e.g 'ctrl-c to stop...' 
-echo "reboot in 5 sec"
-sleep 5
 
+echo ""
+for i in $(seq 5 -1 1); do
+    printf "\rSystem will reboot in %d seconds... (Press Ctrl+C to cancel)" "$i"
+    sleep 1
+done
+echo -e "\nRebooting now..."
 reboot now
