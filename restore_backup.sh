@@ -8,25 +8,20 @@ DST="output.40_custom"
 STRING_TO_REPLACE="filename_restore"
 WARNING_MESSAGE="WARNING: this will REBOOT !!!!. Do you wish to continue? (y/N): "
 
-# -------------------------------
-# Functions
-# -------------------------------
 error_exit() {
     echo "Error: $1"
     exit 1
 }
 
-## Q1. 루트 권한 확인: 이 스크립트는 시스템 파일을 수정하므로 루트 권한이 필요합니다.
-if [ "$(id -u)" -ne 0 ]; then
-    echo "Error: This script must be run as root. Please use 'sudo'." >&2
-    exit 1
+if [ "$EUID" -ne 0 ]; then
+    echo -e "\033[0;34m[System] Requesting sudo privileges...\033[0m"
+    sudo "$0" "$@"
+    exit $?
 fi
 
-# -------------------------------
 # User confirmation
-# -------------------------------
 echo -n "${WARNING_MESSAGE}"
-read USER_INPUT
+read -r USER_INPUT
 
 if ! [[ "$USER_INPUT" =~ ^[yY]$ ]]; then
     echo "Operation cancelled by the user. Stopping script."
@@ -91,7 +86,7 @@ done
 # User folder selection
 # -------------------------------
 while true; do
-    read -rp "Select the buckup-number to restore : " user_input
+    read -rp "Select the backup number to restore: " user_input
 
     if ! [[ "$user_input" =~ ^[0-9]+$ ]]; then
         echo "Numbers only."
@@ -110,8 +105,8 @@ done
 
 FOLDER_SELECT="${folders[$index]}"
 echo "Selected Backup to restore: $FOLDER_SELECT | ${folders_mtime[$index]} | ${folders_size[$index]}"
-echo "press any key to continie..."
-read
+echo "Press Enter to continue..."
+read -r
 
 # -------------------------------
 # Generate new GRUB entry
@@ -129,6 +124,19 @@ if ! cp -f "$DST" /etc/grub.d/40_custom; then
     error_exit "Failed to copy '$DST' to /etc/grub.d/40_custom."
 fi
 
+## 일회성 정리 서비스 설치 및 업데이트
+echo "## Installing cleanup service..."
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+if ! cp -f "$SCRIPT_DIR/grub-cleanup.sh" /usr/local/sbin/grub-cleanup.sh; then
+    error_exit "Failed to copy grub-cleanup.sh to /usr/local/sbin/"
+fi
+chmod +x /usr/local/sbin/grub-cleanup.sh
+
+if ! cp -f "$SCRIPT_DIR/grub-cleanup.service" /etc/systemd/system/grub-cleanup.service; then
+    error_exit "Failed to copy grub-cleanup.service to /etc/systemd/system/"
+fi
+systemctl daemon-reload
+
 ## 다음 부팅 시 일회성 정리 서비스를 활성화합니다.
 echo "## Enabling one-time cleanup service for next boot..."
 if ! systemctl enable grub-cleanup.service; then
@@ -143,10 +151,10 @@ if ! grub-reboot "Clonezilla_Restore"; then
     error_exit "Failed to set grub-reboot for 'Clonezilla_Restore'."
 fi
 
-# -------------------------------
-# Reboot
-# -------------------------------
-echo "System will reboot in 5 seconds..."
-sleep 5
-echo "reboot now"
+echo ""
+for i in $(seq 5 -1 1); do
+    printf "\rSystem will reboot in %d seconds... (Press Ctrl+C to cancel)" "$i"
+    sleep 1
+done
+echo -e "\nRebooting now..."
 reboot now
