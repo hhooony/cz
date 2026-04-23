@@ -55,6 +55,9 @@ apply_grub_and_reboot() {
     if ! cp -f "$dst" /etc/grub.d/40_custom; then
         error_exit "Failed to copy '${dst}' to /etc/grub.d/40_custom."
     fi
+    
+    # CRITICAL: update-grub ignores files in /etc/grub.d that aren't executable
+    chmod +x /etc/grub.d/40_custom
 
     echo "## Installing cleanup service..."
     local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
@@ -65,7 +68,11 @@ apply_grub_and_reboot() {
 
     echo "## Enabling one-time cleanup service for next boot..."
     systemctl enable grub-cleanup.service || error_exit "Failed to enable grub-cleanup.service."
+    
+    echo "## Running update-grub..."
     update-grub || error_exit "Failed to update grub configuration."
+    
+    echo "## Setting next boot entry to '$menu_entry'..."
     grub-reboot "$menu_entry" || error_exit "Failed to set grub-reboot for '$menu_entry'."
 
     echo ""
