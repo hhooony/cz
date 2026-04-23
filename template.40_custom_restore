@@ -13,8 +13,8 @@ menuentry "@@MENU_ENTRY@@"  {
     	boot=live union=overlay username=user config components quiet loglevel=3 \
     	noswap edd=on nomodeset enforcing=0 noeject \
     	locales=en_US.UTF-8 keyboard-layouts=us \
-    	ocs_repository="@@REPOSITORY@@/@@BACKUP_DIR@@" \
-    	ocs_live_run="/usr/sbin/ocs-sr -batch -g auto -e1 auto -e2 -r -j2 -k0 -scr -p reboot restoredisk @@BACKUP_FILENAME@@ @@TARGET_DISK@@" \
+    	ocs_repository="@@REPOSITORY@@" \
+    	ocs_live_run="/usr/sbin/ocs-sr -batch -g auto -e1 auto -e2 -r -j2 -k0 -scr -p reboot restoredisk @@BACKUP_DIR@@/@@BACKUP_FILENAME@@ @@TARGET_DISK@@" \
     	ocs_live_batch="yes" \
     	vga=791 i915.blacklist=yes radeonhd.blacklist=yes nouveau.blacklist=yes vmwgfx.enable_fbdev=1 scsi_mod.use_blk_mq=0 nvme.poll_queues=1 \
     	findiso=$ISO

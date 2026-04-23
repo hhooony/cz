@@ -31,7 +31,7 @@ while true; do
     fi
 done
 
-DATETIME_STAMP=$(date +%Y%m%d-%H%M%S)
+DATETIME_STAMP=$(date +%Y%m%d-%H%M)
 NEW_SUBSTITUTION="${FILENAME_PREF}-${DATETIME_STAMP}"
 
 # Execute grub update and reboot process from common logic
