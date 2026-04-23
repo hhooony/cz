@@ -13,10 +13,8 @@ menuentry "Clonezilla_Backup" {
         boot=live union=overlay username=user config components quiet loglevel=3 \
         noswap edd=on nomodeset \
         locales=en_US.UTF-8 keyboard-layouts=us \
-        ocs_prerun="ocs-scan-disk" \
         ocs_repository="dev:///UUID=bbb79c06-4d29-4b73-b0ea-405a1c35de38" \
-        ocs_preload="mount --bind -o noatime /tmp/ocsroot_bind_root/backup_sys /home/partimag" \
-        ocs_live_run="ocs-sr -batch -q2 -j2 -z9p -p reboot -sfsck -scs -senc savedisk /backup_sys/15th_omv7_stable_L6.19.5-z241_grubcleanup-20260423-221506 nvme0n1" \
+        ocs_live_run="ocs-sr -batch -q2 -j2 -z9p -p reboot -sfsck -scs -senc savedisk backup_sys/test_new-command-20260423-230048 nvme0n1" \
         ocs_live_batch="yes" \
         vga=791 i915.blacklist=yes radeonhd.blacklist=yes nouveau.blacklist=yes vmwgfx.enable_fbdev=1 scsi_mod.use_blk_mq=0 nvme.poll_queues=1 \
         findiso=$ISO
