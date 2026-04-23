@@ -2,8 +2,14 @@
 
 SRC="template.40_custom_backup"
 DST="output.40_custom"
-STRING_TO_REPLACE="filename_backup"
 WARNING_MESSAGE="WARNING: this will REBOOT !!!!. Do you wish to continue? (y/N): "
+
+# Clonezilla Configuration Variables
+MENU_ENTRY="Clonezilla_Backup"
+ISO_FILE="clonezilla.iso"
+REPOSITORY="dev:///uuid=bbb79c06-4d29-4b73-b0ea-405a1c35de38"
+BACKUP_DIR="backup_sys"
+TARGET_DISK="nvme0n1"
 
 if [ "$EUID" -ne 0 ]; then
     echo -e "\033[0;34m[System] Requesting sudo privileges...\033[0m"
@@ -52,10 +58,15 @@ done
 DATETIME_STAMP=$(date +%Y%m%d-%H%M%S)
 NEW_SUBSTITUTION="${FILENAME_PREF}-${DATETIME_STAMP}"
 
-#echo "---"
 #echo "Generating new Custom GRUB enrty with backup filename '${NEW_SUBSTITUTION}'."
 ## sed 명령어 안정성 향상: 구분자를 '|'로 변경하여 파일 이름에 '/'가 포함되어도 안전하게 처리합니다.
-sed "s|${STRING_TO_REPLACE}|${NEW_SUBSTITUTION}|g" "$SRC" > "$DST"
+sed -e "s|@@MENU_ENTRY@@|${MENU_ENTRY}|g" \
+    -e "s|@@ISO_FILE@@|${ISO_FILE}|g" \
+    -e "s|@@REPOSITORY@@|${REPOSITORY}|g" \
+    -e "s|@@BACKUP_DIR@@|${BACKUP_DIR}|g" \
+    -e "s|@@BACKUP_FILENAME@@|${NEW_SUBSTITUTION}|g" \
+    -e "s|@@TARGET_DISK@@|${TARGET_DISK}|g" \
+    "$SRC" > "$DST"
 
 # Check if the sed operation was successful
 if [ $? -eq 0 ]; then
@@ -92,8 +103,8 @@ if ! update-grub; then
     error_exit "Failed to update grub configuration."
 fi
 
-if ! grub-reboot "Clonezilla_Backup"; then
-    error_exit "Failed to set grub-reboot for 'Clonezilla_Backup'."
+if ! grub-reboot "$MENU_ENTRY"; then
+    error_exit "Failed to set grub-reboot for '$MENU_ENTRY'."
 fi
 
 

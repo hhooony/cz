@@ -5,8 +5,14 @@ FOLDER_REPOS="/srv/dev-disk-by-uuid-dda24e6b-a4e0-4b79-90b9-82a1a2bb906d/backup_
 FOLDER_PREF=""                  # optional prefix filter
 SRC="template.40_custom_restore"
 DST="output.40_custom"
-STRING_TO_REPLACE="filename_restore"
 WARNING_MESSAGE="WARNING: this will REBOOT !!!!. Do you wish to continue? (y/N): "
+
+# Clonezilla Configuration Variables
+MENU_ENTRY="Clonezilla_Restore"
+ISO_FILE="clonezilla.iso"
+REPOSITORY="dev:///uuid=bbb79c06-4d29-4b73-b0ea-405a1c35de38"
+BACKUP_DIR="backup_sys"
+TARGET_DISK="nvme0n1"
 
 error_exit() {
     echo "Error: $1"
@@ -112,7 +118,13 @@ read -r
 # Generate new GRUB entry
 # -------------------------------
 escaped_folder=$(printf '%s\n' "$FOLDER_SELECT" | sed 's/[\/&]/\\&/g')
-if ! sed "s|${STRING_TO_REPLACE}|${escaped_folder}|g" "$SRC" > "$DST"; then
+if ! sed -e "s|@@MENU_ENTRY@@|${MENU_ENTRY}|g" \
+         -e "s|@@ISO_FILE@@|${ISO_FILE}|g" \
+         -e "s|@@REPOSITORY@@|${REPOSITORY}|g" \
+         -e "s|@@BACKUP_DIR@@|${BACKUP_DIR}|g" \
+         -e "s|@@BACKUP_FILENAME@@|${escaped_folder}|g" \
+         -e "s|@@TARGET_DISK@@|${TARGET_DISK}|g" \
+         "$SRC" > "$DST"; then
     error_exit "SED operation failed."
 fi
 echo "Success: Content saved to '${DST}' with substitution '${FOLDER_SELECT}'."
@@ -147,8 +159,8 @@ if ! update-grub; then
     error_exit "Failed to update grub configuration."
 fi
 
-if ! grub-reboot "Clonezilla_Restore"; then
-    error_exit "Failed to set grub-reboot for 'Clonezilla_Restore'."
+if ! grub-reboot "$MENU_ENTRY"; then
+    error_exit "Failed to set grub-reboot for '$MENU_ENTRY'."
 fi
 
 echo ""
