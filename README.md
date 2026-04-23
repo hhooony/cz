@@ -44,62 +44,21 @@ The backup and restore functionality provides a safety net for users, ensuring t
 =======
 # Clonezilla Automation Scripts
 
-This project provides a set of shell scripts to automate system backup and restore operations using Clonezilla. It dynamically creates a one-time GRUB boot entry to run Clonezilla and then automatically cleans up the entry on the next successful boot, ensuring the system remains in a clean state.
+Clonezilla를 활용한 시스템 백업 및 복구 자동화 스크립트입니다. 일회성 GRUB 부팅 항목을 생성하고, 작업 완료 후 자동으로 시스템 상태를 원상 복구합니다.
 
 ## Features
-
-- **Automated Backup**: Run a single script to create a full system backup with a timestamped filename.
-- **Interactive Restore**: Lists available backups from a repository and allows the user to select which one to restore.
-- **One-Time Boot**: Uses `grub-reboot` to automatically select the Clonezilla entry for the next boot only.
-- **Self-Cleaning**: A `systemd` service automatically removes the temporary GRUB entry and disables itself after the Clonezilla operation is complete.
-- **Safe**: Requires root privileges and user confirmation before proceeding with a reboot.
-
-## How It Works
-
-1.  **Initiation**: The user runs `backupstart.sh` or `restore_backup.sh` with `sudo`.
-2.  **GRUB Configuration**: The script generates a temporary `/etc/grub.d/40_custom` file with the appropriate Clonezilla menu entry.
-3.  **Cleanup Service**: It enables a one-time `systemd` service (`grub-cleanup.service`) which is configured to run on the next boot.
-4.  **Reboot into Clonezilla**: The script runs `update-grub`, sets the one-time boot entry with `grub-reboot`, and reboots the machine.
-5.  **Clonezilla Operation**: The system boots directly into Clonezilla, which automatically performs the backup or restore operation and then reboots again.
-6.  **Automatic Cleanup**: On the next normal boot, `systemd` detects the presence of `/etc/grub.d/40_custom` and triggers `grub-cleanup.service`.
-7.  **Finalization**: The `grub-cleanup.sh` script removes the temporary GRUB file, runs `update-grub` to clean the menu, and finally disables and deletes its own `systemd` service file. The system is now back to its original state.
-
-## Components
-
-- `backupstart.sh`: Script to initiate a system backup.
-- `restore_backup.sh`: Script to initiate a system restore from a list of available backups.
-- `grub-cleanup.sh`: The cleanup script that is executed by `systemd`. It removes the temporary GRUB entry and the service itself.
-- `grub-cleanup.service`: The `systemd` unit file that defines the one-time cleanup service.
-- `template.40_custom_backup`: The GRUB menu entry template for the backup operation.
-- `template.40_custom_restore`: The GRUB menu entry template for the restore operation.
-
-## Prerequisites
-
-- A Debian-based system (e.g., Debian, Ubuntu, OpenMediaVault) with `systemd` and GRUB.
-- `clonezilla.iso` file must be placed in the root directory (`/`).
-- A dedicated partition for storing backups. The UUID of this partition must be configured in the template files.
-- The target disk for backup/restore is hardcoded as `nvme0n1` in the templates. Adjust if necessary.
+- **간편한 백업 & 복구**: 타임스탬프가 포함된 자동 백업 기능 및 선택형 복구 기능 제공.
+- **자동 정리(Self-Cleaning)**: 작업 완료 후 `systemd` 서비스를 통해 임시 GRUB 설정을 자동으로 정리.
+- **중앙화된 설정**: `clonezilla.conf` 파일 하나로 모든 시스템 변수 제어.
 
 ## Setup
-
-1.  **Place Scripts**: Place `backupstart.sh` and `restore_backup.sh` in a convenient location (e.g., `/home/user/scripts`).
-
-2.  **Configure Templates**:
-    - Edit `template.40_custom_backup` and `template.40_custom_restore`.
-    - Replace the `ocs_repository` UUID (`dda24e6b-a4e0-4b79-90b9-82a1a2bb906d`) with the UUID of your backup partition.
-    - Ensure the `ocs_live_run` parameter correctly targets your system disk (e.g., `nvme0n1`).
-
-3.  **Configure Restore Script**:
-    - Edit `restore_backup.sh`.
-    - Update the `FOLDER_REPOS` variable to match the mount point of your backup partition.
+1. 모든 스크립트 파일을 동일한 디렉토리에 위치시킵니다.
+2. `clonezilla.conf` 파일을 열어 시스템 환경에 맞게 변수를 수정합니다. (디스크 UUID, 타겟 디스크 등)
 
 ## Usage
+**주의**: 아래 명령어를 실행하면 시스템이 재부팅됩니다. 실행 전 모든 작업을 저장하세요.
 
-**Important**: These scripts will reboot the machine. Ensure all work is saved before running.
-
-### To Create a Backup
-
-Navigate to the script directory and run:
+### 시스템 백업
 ```bash
 sudo ./backupstart.sh
 ```

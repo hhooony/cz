@@ -1,39 +1,15 @@
 #!/usr/bin/env bash
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
+source "$SCRIPT_DIR/clonezilla.conf"
+source "$SCRIPT_DIR/common.sh"
+
+require_root
+confirm_reboot
+
 SRC="template.40_custom_backup"
 DST="output.40_custom"
-WARNING_MESSAGE="WARNING: this will REBOOT !!!!. Do you wish to continue? (y/N): "
-
-# Clonezilla Configuration Variables
 MENU_ENTRY="Clonezilla_Backup"
-ISO_FILE="clonezilla.iso"
-REPOSITORY="dev:///uuid=bbb79c06-4d29-4b73-b0ea-405a1c35de38"
-BACKUP_DIR="backup_sys"
-TARGET_DISK="nvme0n1"
-
-if [ "$EUID" -ne 0 ]; then
-    echo -e "\033[0;34m[System] Requesting sudo privileges...\033[0m"
-    sudo "$0" "$@"
-    exit $?
-fi
-
-error_exit() {
-    echo "Error: $1" >&2
-    exit 1
-}
-
-echo -n "${WARNING_MESSAGE}"
-read -r USER_INPUT
-
-if ! [[ "$USER_INPUT" =~ ^[yY]$ ]]; then
-    echo "Operation cancelled by the user. Stopping script."
-    exit 0
-fi
-
-if [ ! -f "$SRC" ]; then
-    error_exit "Source file '${SRC}' not found."
-fi
-
 
 FILENAME_PREF=""
 
@@ -58,60 +34,5 @@ done
 DATETIME_STAMP=$(date +%Y%m%d-%H%M%S)
 NEW_SUBSTITUTION="${FILENAME_PREF}-${DATETIME_STAMP}"
 
-#echo "Generating new Custom GRUB enrty with backup filename '${NEW_SUBSTITUTION}'."
-## sed 명령어 안정성 향상: 구분자를 '|'로 변경하여 파일 이름에 '/'가 포함되어도 안전하게 처리합니다.
-sed -e "s|@@MENU_ENTRY@@|${MENU_ENTRY}|g" \
-    -e "s|@@ISO_FILE@@|${ISO_FILE}|g" \
-    -e "s|@@REPOSITORY@@|${REPOSITORY}|g" \
-    -e "s|@@BACKUP_DIR@@|${BACKUP_DIR}|g" \
-    -e "s|@@BACKUP_FILENAME@@|${NEW_SUBSTITUTION}|g" \
-    -e "s|@@TARGET_DISK@@|${TARGET_DISK}|g" \
-    "$SRC" > "$DST"
-
-# Check if the sed operation was successful
-if [ $? -eq 0 ]; then
-    echo "Success: Content saved to '${DST}'. (New substitution: ${NEW_SUBSTITUTION})"
-else
-    error_exit "SED operation failed."
-fi
-
-# Overwrite grub custom script
-if ! cp -f "$DST" /etc/grub.d/40_custom; then
-    error_exit "Failed to copy '$DST' to /etc/grub.d/40_custom."
-fi
-
-## 일회성 정리 서비스 설치 및 업데이트
-echo "## Installing cleanup service..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-if ! cp -f "$SCRIPT_DIR/grub-cleanup.sh" /usr/local/sbin/grub-cleanup.sh; then
-    error_exit "Failed to copy grub-cleanup.sh to /usr/local/sbin/"
-fi
-chmod +x /usr/local/sbin/grub-cleanup.sh
-
-if ! cp -f "$SCRIPT_DIR/grub-cleanup.service" /etc/systemd/system/grub-cleanup.service; then
-    error_exit "Failed to copy grub-cleanup.service to /etc/systemd/system/"
-fi
-systemctl daemon-reload
-
-## 다음 부팅 시 일회성 정리 서비스를 활성화합니다.
-echo "## Enabling one-time cleanup service for next boot..."
-if ! systemctl enable grub-cleanup.service; then
-    error_exit "Failed to enable grub-cleanup.service."
-fi
-
-if ! update-grub; then
-    error_exit "Failed to update grub configuration."
-fi
-
-if ! grub-reboot "$MENU_ENTRY"; then
-    error_exit "Failed to set grub-reboot for '$MENU_ENTRY'."
-fi
-
-
-echo ""
-for i in $(seq 5 -1 1); do
-    printf "\rSystem will reboot in %d seconds... (Press Ctrl+C to cancel)" "$i"
-    sleep 1
-done
-echo -e "\nRebooting now..."
-reboot now
+# Execute grub update and reboot process from common logic
+apply_grub_and_reboot "$SRC" "$DST" "$MENU_ENTRY" "$NEW_SUBSTITUTION"
