@@ -13,10 +13,8 @@ menuentry "@@MENU_ENTRY@@" {
         boot=live union=overlay username=user config components quiet loglevel=3 \
         noswap edd=on nomodeset \
         locales=en_US.UTF-8 keyboard-layouts=us \
-        ocs_prerun="ocs-scan-disk" \
-        ocs_repository="@@REPOSITORY@@" \
-        ocs_preload="mount --bind -o noatime /tmp/ocsroot_bind_root/@@BACKUP_DIR@@ /home/partimag" \
-        ocs_live_run="ocs-sr -batch -q2 -j2 -z9p -p reboot -sfsck -scs -senc savedisk /@@BACKUP_DIR@@/@@BACKUP_FILENAME@@ @@TARGET_DISK@@" \
+        ocs_repository="@@REPOSITORY@@/@@BACKUP_DIR@@" \
+        ocs_live_run="ocs-sr -batch -q2 -j2 -z9p -p reboot -sfsck -scs -senc savedisk @@BACKUP_FILENAME@@ @@TARGET_DISK@@" \
         ocs_live_batch="yes" \
         vga=791 i915.blacklist=yes radeonhd.blacklist=yes nouveau.blacklist=yes vmwgfx.enable_fbdev=1 scsi_mod.use_blk_mq=0 nvme.poll_queues=1 \
         findiso=$ISO

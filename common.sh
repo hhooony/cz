@@ -64,6 +64,7 @@ apply_grub_and_reboot() {
     cp -f "$SCRIPT_DIR/grub-cleanup.sh" /usr/local/sbin/grub-cleanup.sh || error_exit "Failed to copy grub-cleanup.sh"
     chmod +x /usr/local/sbin/grub-cleanup.sh
     cp -f "$SCRIPT_DIR/grub-cleanup.service" /etc/systemd/system/grub-cleanup.service || error_exit "Failed to copy grub-cleanup.service"
+    chmod 644 /etc/systemd/system/grub-cleanup.service
     systemctl daemon-reload
 
     echo "## Enabling one-time cleanup service for next boot..."
