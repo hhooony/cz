@@ -52,8 +52,8 @@ apply_grub_and_reboot() {
     fi
     echo "Success: Content saved to '${dst}' with substitution '${backup_filename}'."
 
-    if ! cp -f "$dst" /etc/grub.d/40_custom; then
-        error_exit "Failed to copy '${dst}' to /etc/grub.d/40_custom."
+    if ! mv -f "$dst" /etc/grub.d/40_custom; then
+        error_exit "Failed to move '${dst}' to /etc/grub.d/40_custom."
     fi
     
     # CRITICAL: update-grub ignores files in /etc/grub.d that aren't executable
