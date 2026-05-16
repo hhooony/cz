@@ -25,6 +25,51 @@ confirm_reboot() {
     fi
 }
 
+# 백업 폴더 목록을 조회하고 출력하는 공통 함수 (최신순 정렬)
+print_backup_list() {
+    folders=()
+    folders_mtime=()
+    folders_size=()
+
+    if [ ! -d "$FOLDER_REPOS" ]; then
+        echo "Warning: Repository directory '$FOLDER_REPOS' does not exist or is not mounted."
+        return 1
+    fi
+
+    local find_cmd="find \"$FOLDER_REPOS\" -mindepth 1 -maxdepth 1 -type d -printf \"%T@|%f\n\" | sort -nr"
+    if [[ -n "${FOLDER_PREF:-}" ]]; then
+        find_cmd+=" | grep \"|${FOLDER_PREF}\""
+    fi
+
+    mapfile -t raw_list < <(eval "$find_cmd")
+
+    if [[ ${#raw_list[@]} -eq 0 ]]; then
+        echo "No backups found in '$FOLDER_REPOS'."
+        return 1
+    fi
+
+    for entry in "${raw_list[@]}"; do
+        local timestamp="${entry%%|*}"
+        local folder_name="${entry##*|}"
+
+        local mtime_human=$(date -d "@$timestamp" "+%Y-%m-%d %H:%M:%S")
+        local folder_size=$(du -sh "$FOLDER_REPOS/$folder_name" 2>/dev/null | awk '{print $1}')
+
+        folders+=("$folder_name")
+        folders_mtime+=("$mtime_human")
+        folders_size+=("$folder_size")
+    done
+
+    echo "Available backups:"
+    for i in "${!folders[@]}"; do
+        printf "%3d) %-40s | %s | %s\n" \
+            "$((i+1))" \
+            "${folders[$i]}" \
+            "${folders_mtime[$i]}" \
+            "${folders_size[$i]}"
+    done
+}
+
 # Usage: apply_grub_and_reboot <template_file> <output_file> <menu_entry> <backup_filename>
 apply_grub_and_reboot() {
     local src="$1"
